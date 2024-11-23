@@ -1,0 +1,7 @@
+start q0
+accept q2
+q0 0 q0
+q0 e q1
+q1 1 q1
+q1 e q2
+q2 2 q2

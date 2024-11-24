@@ -1,4 +1,5 @@
 import os
+import traceback
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from graphviz import Digraph
@@ -7,20 +8,28 @@ from NFAe import NFAe
 
 
 def read_nfa_from_file(filename, steps_display):
-    nfae = NFAe(steps_display)
+    nfae = NFAe(states=set(), alphabet=set(), start_state="", accept_states=set(), transition={}, steps_display=steps_display)
     with open(filename, 'r') as file:
         lines = file.readlines()
-        initial_state_line, accept_states_line, *transitions_lines = map(str.strip, lines)
 
-        start_state = initial_state_line.split()[1]
+        states = lines[0].split(":")[1].strip().split(",")
+        alphabet = lines[1].split(":")[1].strip().split(",")
+        start_state = lines[2].split(":")[1].strip()
+        accept_states = lines[3].split(":")[1].strip().split(",")
+
+        # Nạp trạng thái
+        for state in states:
+            nfae.add_state(state.strip())
+        # Nạp ký tự đầu vào
+        nfae.alphabet = alphabet
+        # Nạp trạng thái bắt đầu
         nfae.add_state(start_state, is_start=True)
-
-        accept_states = accept_states_line.split()[1:]
+        # Nạp trạng thái kết thúc
         for state in accept_states:
             nfae.add_state(state, is_accept=True)
-
-        for transition in transitions_lines:
-            from_state, symbol, to_state = transition.split()
+        # Nạp hàm chuyển delta
+        for line in lines[5:]:
+            from_state, symbol, to_state = line.split()
             nfae.add_transition(from_state, symbol, to_state)
 
     return nfae
@@ -29,7 +38,6 @@ def read_nfa_from_file(filename, steps_display):
 def draw_nfae(nfae):
     dot = Digraph(format="png")
     dot.attr(rankdir="LR")
-
     for state in nfae.states:
         if state in nfae.accept_states:
             dot.node(state, shape="doublecircle")
@@ -112,6 +120,7 @@ class NFAeMenu:
                 messagebox.showinfo("Success", "Nạp thành công NFAe!")
                 draw_nfae(self.nfae)
             except Exception as e:
+                traceback.print_exception(e)
                 messagebox.showerror("Error", f"Nạp thất bại NFAe: {e}")
 
     def check_string(self):
@@ -134,7 +143,7 @@ class NFAeMenu:
         diagram_window.title("NFAe Diagram")
         try:
             if not os.path.exists(image_path):
-                raise FileNotFoundError(f"Image file does not exist at: {image_path}")
+                raise FileNotFoundError(f"Không tồn tại hình ảnh tại đường dẫn: {image_path}")
 
             # Mở hình ảnh với Pillow
             img = Image.open(image_path)
@@ -148,8 +157,8 @@ class NFAeMenu:
             label.pack()
 
         except Exception as e:
-            print(f"Error loading image: {e}")  # In ra lỗi nếu có
-            error_label = tk.Label(diagram_window, text=f"Unable to load image: {e}")
+            print(f"Lỗi tải hình ảnh: {e}")
+            error_label = tk.Label(diagram_window, text=f"Không thể tải hình ảnh: {e}")
             error_label.pack()
 
 

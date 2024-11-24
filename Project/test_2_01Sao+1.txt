@@ -1,5 +1,8 @@
-start q0
-accept q9
+States: q0, q1, q2, q3, q4, q5, q6, q7, q8, q9
+Alphabet: 0, 1, e
+Start: q0
+Accept: q9
+Transition:
 q0 e q3
 q0 e q1
 q1 1 q2

@@ -7,8 +7,15 @@ from PIL import Image, ImageTk
 from NFAe import NFAe
 
 
-def read_nfa_from_file(filename, steps_display):
-    nfae = NFAe(states=set(), alphabet=set(), start_state="", accept_states=set(), transition={}, steps_display=steps_display)
+def read_NFAe_from_file(filename, steps_display):
+    nfae = NFAe(
+        states=set(),
+        alphabet=set(),
+        start_state="",
+        accept_states=set(),
+        transition={},
+        steps_display=steps_display
+    )
     with open(filename, 'r') as file:
         lines = file.readlines()
 
@@ -70,6 +77,7 @@ BG_COLOR = "#f5f2fa"
 BUTTON_COLOR = "#ffffff"
 BUTTON_TEXT_COLOR = "#625285"
 NORMAL_FONT = ("Helvetica", 16)
+BUTTON_FONT = ("Helvetica", 20)
 
 
 class NFAeMenu:
@@ -80,19 +88,26 @@ class NFAeMenu:
         self.nfae = None
         self.root.configure(bg=BG_COLOR)
         self.root.geometry(f"{DEFAULT_WIDTH}x{DEFAULT_HEIGHT}")  # Kích thước cửa sổ
-        # Label
+
+        # Main Label
         self.label = tk.Label(root, text="Kiểm tra NFAe", font=("Helvetica", 30, "bold"))
         self.label.pack(pady=10)
 
-        # Load NFA Button
-        self.load_nfae_button = tk.Button(root, text="Nạp NFAe từ File", font=("Helvetica", 20),
-                                          bg=BUTTON_COLOR, fg=BUTTON_TEXT_COLOR, command=self.load_nfa)
-        self.load_nfae_button.pack(pady=10)
+        # Load NFAe Button
+        self.load_NFAe_button = tk.Button(
+            root, text="Nạp NFAe từ File", font=BUTTON_FONT,
+            bg=BUTTON_COLOR, fg=BUTTON_TEXT_COLOR,
+            command=self.load_NFAe
+        )
+        self.load_NFAe_button.pack(pady=10)
 
-        # Load NFA Button
-        self.view_nfae_button = tk.Button(root, text="Xem NFAe", font=("Helvetica", 20),
-                                          bg=BUTTON_COLOR, fg=BUTTON_TEXT_COLOR, command=self.show_nfae_diagram)
-        self.view_nfae_button.pack(pady=10)
+        # View NFAe Button
+        self.view_NFAe_button = tk.Button(
+            root, text="Xem NFAe", font=BUTTON_FONT,
+            bg=BUTTON_COLOR, fg=BUTTON_TEXT_COLOR,
+            command=self.show_NFAe_diagram
+        )
+        self.view_NFAe_button.pack(pady=10)
 
         # Input String Entry
         self.input_label = tk.Label(root, text="Nhập chuỗi để kiểm tra:", font=NORMAL_FONT)
@@ -102,21 +117,26 @@ class NFAeMenu:
         self.input_entry.pack(pady=5)
 
         # Check Button
-        self.check_button = tk.Button(root, text="Kiểm tra", font=("Helvetica", 20),
-                                      bg=BUTTON_COLOR, fg=BUTTON_TEXT_COLOR, command=self.check_string)
+        self.check_button = tk.Button(
+            root, text="Kiểm tra", font=BUTTON_FONT,
+            bg=BUTTON_COLOR, fg=BUTTON_TEXT_COLOR,
+            command=self.check_string
+        )
         self.check_button.pack(pady=10)
+
         # Result Label
         self.result_label = tk.Label(root, text="", font=NORMAL_FONT, fg="blue")
         self.result_label.pack(pady=10)
 
-        self.steps_display = tk.Text(root, height=10, width=60, font=("Helvetica", 20))
+        # Step display field
+        self.steps_display = tk.Text(root, height=10, width=60, font=NORMAL_FONT, state="disabled")
         self.steps_display.pack(pady=10)
 
-    def load_nfa(self):
+    def load_NFAe(self):
         file_path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt")])
         if file_path:
             try:
-                self.nfae = read_nfa_from_file(file_path, self.steps_display)
+                self.nfae = read_NFAe_from_file(file_path, self.steps_display)
                 messagebox.showinfo("Success", "Nạp thành công NFAe!")
                 draw_nfae(self.nfae)
             except Exception as e:
@@ -124,6 +144,7 @@ class NFAeMenu:
                 messagebox.showerror("Error", f"Nạp thất bại NFAe: {e}")
 
     def check_string(self):
+        self.steps_display.config(state="normal")
         if not self.nfae:
             messagebox.showwarning("Warning", "Hãy nạp NFAe trước!")
             return
@@ -133,8 +154,9 @@ class NFAeMenu:
             self.result_label.config(text="NFAe CHẤP NHẬN chuỗi đã nhập.", fg="green")
         else:
             self.result_label.config(text="NFAe KHÔNG CHẤP NHẬN chuỗi đã nhập.", fg="red")
+        self.steps_display.config(state="disabled")
 
-    def show_nfae_diagram(self, image_path="./diagram.png"):
+    def show_NFAe_diagram(self, image_path="./diagram.png"):
         if not self.nfae:
             messagebox.showwarning("Warning", "Hãy nạp NFAe trước!")
             return

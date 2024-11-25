@@ -2,13 +2,13 @@ import tkinter as tk
 
 
 class NFAe:
-    def __init__(self, states: set, alphabet: set, start_state: str, accept_states: set, transition: dict,
-                 steps_display):
+    def __init__(self, states: set, alphabet: set, start_state: str, accept_states: set,
+                 transition: dict, steps_display):
         self.states = states  # Tập trạng thái Q
         self.alphabet = alphabet # Ký tự nhập
         self.start_state = start_state  # Trạng thái bắt đầu
         self.accept_states = accept_states  # Trạng thái kết thúc
-        self.transitions = transition  # Hàm chuyển
+        self.transitions = transition  # Hàm chuyển đổi delta
         self.steps_display = steps_display # Log các bước thực hiện
 
     def add_state(self, state, is_start=False, is_accept=False):
@@ -34,8 +34,11 @@ class NFAe:
                 if next_state not in closure:
                     closure.add(next_state)
                     stack.append(next_state)
-        # print(closure)
-        self.steps_display.insert(tk.END, f"Trạng thái mới sau khi tính e-closure: {closure if closure else "∅"}\n")
+        
+        self.steps_display.insert(
+            tk.END,
+            f"Trạng thái mới sau khi tính e-closure: {closure if closure else "∅"}\n"
+        )
         return closure
 
     # Chuyển trạng thái hiện tại sang trạng thái mới trên nhãn symbol
@@ -43,7 +46,10 @@ class NFAe:
         new_states = set()
         for state in states:
             new_states.update(self.transitions.get((state, symbol), []))
-        self.steps_display.insert(tk.END, f"Trạng thái mới trên nhãn {symbol}: {new_states if new_states else "∅"}\n")
+        self.steps_display.insert(
+            tk.END,
+            f"Trạng thái mới trên nhãn {symbol}: {new_states if new_states else "∅"}\n"
+        )
         return new_states
 
     def accepts(self, input_string):

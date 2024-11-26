@@ -1,15 +1,40 @@
 import tkinter as tk
 
 
+# Class State để tạo các trạng thái khác nhau
+class State:
+    counter = 0
+
+    def __init__(self):
+        self.id = f"q{State.counter}"
+        State.counter += 1
+
+    @classmethod
+    def reset_counter(cls):
+        # Reset the counter về 0
+        cls.counter = 0
+
+    def __str__(self):
+        return str(self.id)
+
+    def __repr__(self):
+        return str(self.id)
+
+    def __hash__(self):
+        return hash(self.id)
+
+    def __eq__(self, other):
+        return isinstance(other, State) and self.id == other.id
+
+
 class NFAe:
-    def __init__(self, states: set, alphabet: set, start_state: str, accept_states: set,
-                 transition: dict, steps_display):
-        self.states = states  # Tập trạng thái Q
-        self.alphabet = alphabet # Ký tự nhập
-        self.start_state = start_state  # Trạng thái bắt đầu
-        self.accept_states = accept_states  # Trạng thái kết thúc
-        self.transitions = transition  # Hàm chuyển đổi delta
-        self.steps_display = steps_display # Log các bước thực hiện
+    def __init__(self, steps_display):
+        self.states = set()  # Tập trạng thái Q
+        self.alphabet = set()  # Ký tự nhập
+        self.start_state = None  # Trạng thái bắt đầu
+        self.accept_states = set()  # Trạng thái kết thúc
+        self.transitions = {}  # Hàm chuyển đổi delta
+        self.steps_display = steps_display  # Log các bước thực hiện
 
     def add_state(self, state, is_start=False, is_accept=False):
         self.states.add(state)
@@ -17,6 +42,9 @@ class NFAe:
             self.start_state = state
         if is_accept:
             self.accept_states.add(state)
+
+    def reset_accept_states(self):
+        self.accept_states = set()
 
     def add_transition(self, from_state, symbol, to_state):
         if (from_state, symbol) not in self.transitions:
@@ -34,7 +62,7 @@ class NFAe:
                 if next_state not in closure:
                     closure.add(next_state)
                     stack.append(next_state)
-        
+
         self.steps_display.insert(
             tk.END,
             f"Trạng thái mới sau khi tính e-closure: {closure if closure else "∅"}\n"
@@ -80,7 +108,7 @@ class NFAe:
         print("NFAe Structure:")
         for (from_state, symbol), to_states in self.transitions.items():
             for to_state in to_states:
-                transition_type = "ε" if symbol is None else symbol
-                print(f"State {from_state} --{transition_type}--> State {to_state}")
+                transition_type = "ε" if symbol == "e" else symbol
+                print(f"{from_state} --{transition_type}--> {to_state}")
         print(f"Start State: {self.start_state}")
         print(f"Accept States: {self.accept_states}")

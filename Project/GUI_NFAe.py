@@ -4,18 +4,11 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 from graphviz import Digraph
 from PIL import Image, ImageTk
-from NFAe import NFAe
+from NFAe import State, NFAe
 
 
 def read_NFAe_from_file(filename, steps_display):
-    nfae = NFAe(
-        states=set(),
-        alphabet=set(),
-        start_state="",
-        accept_states=set(),
-        transition={},
-        steps_display=steps_display
-    )
+    nfae = NFAe(steps_display=steps_display)
     with open(filename, 'r') as file:
         lines = file.readlines()
 
@@ -42,22 +35,22 @@ def read_NFAe_from_file(filename, steps_display):
     return nfae
 
 
-def draw_nfae(nfae):
+def draw_NFAe(nfae):
     dot = Digraph(format="png")
     dot.attr(rankdir="LR")
     for state in nfae.states:
-        if state in nfae.accept_states:
-            dot.node(state, shape="doublecircle")
+        if str(state) in nfae.accept_states:
+            dot.node(str(state), shape="doublecircle")
         else:
-            dot.node(state, shape="circle")
+            dot.node(str(state), shape="circle")
 
     dot.node("start", shape="point")
-    dot.edge("start", nfae.start_state)
+    dot.edge("start", str(nfae.start_state))
 
     for (from_state, symbol), to_states in nfae.transitions.items():
         for to_state in to_states:
             label = "ε" if symbol == "e" else symbol
-            dot.edge(from_state, to_state, label=label)
+            dot.edge(str(from_state), str(to_state), label=label)
 
     output_file = r"./diagram"
     try:
@@ -66,6 +59,111 @@ def draw_nfae(nfae):
     except Exception as e:
         print("Lỗi vẽ đồ thị: ", e)
         return None
+
+
+def create_NFAe_from_regex_postfix(postfix, steps_display) -> NFAe:
+    nfa_stack = []
+    for char in postfix:
+        if char.isalnum():  # Ký tự thuần
+            nfa = NFAe(steps_display)
+            start = State()
+            accept = State()
+            nfa.add_state(start, is_start=True)
+            nfa.add_state(accept, is_accept=True)
+            nfa.add_transition(start, char, accept)
+            nfa_stack.append(nfa)
+        elif char == '*':  # Phép bao đóng
+            nfa = nfa_stack.pop()
+            start = State()
+            accept = State()
+            nfa.add_transition(start, "e", nfa.start_state)
+            nfa.add_transition(start, "e", accept)
+            for accept_state in nfa.accept_states:
+                nfa.add_transition(accept_state, "e", nfa.start_state)
+                nfa.add_transition(accept_state, "e", accept)
+
+            nfa.add_state(start, is_start=True)
+            nfa.reset_accept_states()
+            nfa.add_state(accept, is_accept=True)
+            nfa_stack.append(nfa)
+
+        elif char == '|':  # Phép hợp
+            nfa2 = nfa_stack.pop()
+            nfa1 = nfa_stack.pop()
+            nfa = NFAe(steps_display)
+            start = State()
+            accept = State()
+            nfa.add_state(start, is_start=True)
+            nfa.add_state(accept, is_accept=True)
+            nfa.add_transition(start, "e", nfa2.start_state)
+            nfa.add_transition(start, "e", nfa1.start_state)
+            for accept_state in nfa1.accept_states:
+                nfa.add_transition(accept_state, "e", accept)
+            for accept_state in nfa2.accept_states:
+                nfa.add_transition(accept_state, "e", accept)
+            nfa.states.update(nfa1.states)
+            nfa.states.update(nfa2.states)
+            nfa.transitions.update(nfa1.transitions)
+            nfa.transitions.update(nfa2.transitions)
+            nfa_stack.append(nfa)
+
+        elif char == '.':  # Phép nối kết
+            nfa2 = nfa_stack.pop()
+            nfa1 = nfa_stack.pop()
+            for accept_state in nfa1.accept_states:
+                nfa1.add_transition(accept_state, "e", nfa2.start_state)
+            nfa1.states.update(nfa2.states)
+            nfa1.transitions.update(nfa2.transitions)
+            nfa1.accept_states = nfa2.accept_states
+            nfa_stack.append(nfa1)
+
+    return nfa_stack.pop()
+
+
+def regex_to_postfix(regex):
+    """Chuyển regex từ infix sang postfix (RPN)"""
+    precedence = {'|': 1, '.': 2, '*': 3}  # Xếp các toán tử theo thứ tự ưu tiên
+    output = []
+    operators = []
+
+    def add_concat_operator(regex):
+        """Thêm phép nối kết cho regex"""
+        result = []
+        for i, token in enumerate(regex):
+            result.append(token)
+            if token not in '(|' and i + 1 < len(regex) and regex[i + 1] not in '|)*':
+                result.append('.')
+        return result
+
+    regex = add_concat_operator(regex)
+
+    for char in regex:
+        if char.isalnum():  # Toán hạng
+            output.append(char)
+        elif char == '(':
+            operators.append(char)
+        elif char == ')':
+            while operators and operators[-1] != '(':
+                output.append(operators.pop())
+            operators.pop()  # Xoá '('
+        else:  # Toán tử
+            while (operators and operators[-1] != '(' and
+                   precedence[operators[-1]] >= precedence[char]):
+                output.append(operators.pop())
+            operators.append(char)
+
+    while operators:
+        output.append(operators.pop())
+
+    return ''.join(output)
+
+
+def regex_to_NFAe(regex, steps_display):
+    """
+    Converts a regular expression to an NFAe using the updated class.
+    """
+    postfix = regex_to_postfix(regex)
+    return create_NFAe_from_regex_postfix(postfix, steps_display)
 
 
 # ----------- GUI ---------------
@@ -100,6 +198,24 @@ class NFAeMenu:
             command=self.load_NFAe
         )
         self.load_NFAe_button.pack(pady=10)
+
+        # Regex String Entry
+        frame = tk.Frame(root)
+        frame.pack(pady=10)
+        self.regex_label = tk.Label(frame, text="Hoặc nhập biểu thức chính quy:", font=NORMAL_FONT)
+        self.regex_label.pack(padx=5)
+
+        self.regex_entry = tk.Entry(frame, width=25, font=NORMAL_FONT)
+        self.regex_entry.pack(side=tk.LEFT, padx=5)
+
+        submit_button = tk.Button(
+            frame,
+            text="Submit",
+            font=BUTTON_TEXT_COLOR,
+            bg=BUTTON_COLOR,
+            fg=BUTTON_TEXT_COLOR,
+            command=self.submit_regex)
+        submit_button.pack(side=tk.LEFT, padx=5)
 
         # View NFAe Button
         self.view_NFAe_button = tk.Button(
@@ -137,11 +253,27 @@ class NFAeMenu:
         if file_path:
             try:
                 self.nfae = read_NFAe_from_file(file_path, self.steps_display)
+                self.reset_GUI()
                 messagebox.showinfo("Success", "Nạp thành công NFAe!")
-                draw_nfae(self.nfae)
+                draw_NFAe(self.nfae)
             except Exception as e:
                 traceback.print_exception(e)
                 messagebox.showerror("Error", f"Nạp thất bại NFAe: {e}")
+
+    def submit_regex(self):
+        regex = self.regex_entry.get()
+        if not regex:
+            messagebox.showwarning("Warning", "Biểu thức chính quy không được rỗng!")
+            return
+        try:
+            State.reset_counter()
+            self.nfae = regex_to_NFAe(regex, self.steps_display)
+            self.reset_GUI()
+            messagebox.showinfo("Success", "Nạp biểu thức chính quy thành công!")
+            draw_NFAe(self.nfae)
+        except Exception as e:
+            traceback.print_exception(e)
+            messagebox.showerror("Error", f"Nạp biểu thức chính quy thất bại: {e}")
 
     def check_string(self):
         self.steps_display.config(state="normal")
@@ -182,6 +314,13 @@ class NFAeMenu:
             print(f"Lỗi tải hình ảnh: {e}")
             error_label = tk.Label(diagram_window, text=f"Không thể tải hình ảnh: {e}")
             error_label.pack()
+
+    def reset_GUI(self):
+        self.input_entry.delete(0, tk.END)
+        self.result_label.config(text="")
+        self.steps_display.config(state="normal")
+        self.steps_display.delete(1.0, tk.END)
+        self.steps_display.config(state="disabled")
 
 
 if __name__ == "__main__":

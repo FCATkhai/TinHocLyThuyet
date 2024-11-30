@@ -11,7 +11,7 @@ class State:
 
     @classmethod
     def reset_counter(cls):
-        # Reset the counter về 0
+        # Reset counter về 0
         cls.counter = 0
 
     def __str__(self):

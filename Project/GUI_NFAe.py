@@ -39,7 +39,7 @@ def draw_NFAe(nfae):
     dot = Digraph(format="png")
     dot.attr(rankdir="LR")
     for state in nfae.states:
-        if str(state) in nfae.accept_states:
+        if state in nfae.accept_states:
             dot.node(str(state), shape="doublecircle")
         else:
             dot.node(str(state), shape="circle")
@@ -122,7 +122,7 @@ def create_NFAe_from_regex_postfix(postfix, steps_display) -> NFAe:
 
 def regex_to_postfix(regex):
     """Chuyển regex từ infix sang postfix (RPN)"""
-    precedence = {'|': 1, '.': 2, '*': 3}  # Xếp các toán tử theo thứ tự ưu tiên
+    precedence = {'|': 1, '.': 2, '*': 3}  # Xếp các toán tử theo thứ tự ưu tiên tăng dần
     output = []
     operators = []
 
@@ -159,9 +159,6 @@ def regex_to_postfix(regex):
 
 
 def regex_to_NFAe(regex, steps_display):
-    """
-    Converts a regular expression to an NFAe using the updated class.
-    """
     postfix = regex_to_postfix(regex)
     return create_NFAe_from_regex_postfix(postfix, steps_display)
 
@@ -244,7 +241,7 @@ class NFAeMenu:
         self.result_label = tk.Label(root, text="", font=NORMAL_FONT, fg="blue")
         self.result_label.pack(pady=10)
 
-        # Step display field
+        # Step display Text
         self.steps_display = tk.Text(root, height=10, width=60, font=NORMAL_FONT, state="disabled")
         self.steps_display.pack(pady=10)
 
@@ -253,6 +250,7 @@ class NFAeMenu:
         if file_path:
             try:
                 self.nfae = read_NFAe_from_file(file_path, self.steps_display)
+                self.regex_entry.delete(0, tk.END)
                 self.reset_GUI()
                 messagebox.showinfo("Success", "Nạp thành công NFAe!")
                 draw_NFAe(self.nfae)

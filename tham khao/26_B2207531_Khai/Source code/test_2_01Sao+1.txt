@@ -1,0 +1,17 @@
+States: q0, q1, q2, q3, q4, q5, q6, q7, q8, q9
+Alphabet: 0, 1, e
+Start: q0
+Accept: q9
+Transition:
+q0 e q3
+q0 e q1
+q1 1 q2
+q2 e q9
+q3 0 q4
+q4 e q7
+q7 e q5
+q7 e q8
+q5 1 q6
+q6 e q5
+q6 e q8
+q8 e q9

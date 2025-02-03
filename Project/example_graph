@@ -1,0 +1,7 @@
+digraph {
+	A [label=Start]
+	B [label=Decision]
+	C [label=End]
+	A -> B [label="Path 1"]
+	B -> C [label="Path 2"]
+}
